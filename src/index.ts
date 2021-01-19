@@ -1,28 +1,35 @@
 import * as functions from 'firebase-functions';
 import * as nodemailer from 'nodemailer';
 
-// // Start writing Firebase Functions
-// // https://firebase.google.com/docs/functions/typescript
-//
-// export const helloWorld = functions.https.onRequest((request, response) => {
-//   functions.logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
-
 // Función para enviar correo
 export const correoContacto = functions.https.onRequest((req, res) => {
   // Instancia usuario y contraseña de correo desde configuración de firebase
   const remitenteCorreo = functions.config().remitente.correo;
   const remitenteContrasena = functions.config().remitente.contrasena;
   const destinatarioCorreo = functions.config().destinatario.correo;
-  const sitioWeb = functions.config().sitioweb;
+  const sitioWeb = functions.config().web.url;
 
-  // Setea CORS
+  // Control de CORS
+  // Considerar que CORS consiste en dos solicitudes
+  // - Una solicitud de comprobación previa de OPTIONS
+  // - Una solicitud principal que sigue a la solicitud de OPTIONS
+  // Documentación: https://cloud.google.com/functions/docs/writing/http#handling_cors_requests
+
+  // Configura CORS Base
   res.set('Access-Control-Allow-Origin', sitioWeb);
   res.set('Access-Control-Allow-Credentials', 'true');
 
-  // Valida que sea un JSON Body y una petición POST
-  if (req.get('content-type') === 'application/json' && req.method === 'POST') {
+  // CORS de OPTION (Primera solicitud)
+  if (req.method === 'OPTIONS') {
+    // Send response to OPTIONS requests
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '3600');
+    res.status(204).send('');
+  }
+
+  // Ejecución normal (Segunda solicitud) - Valida que sea un JSON Body y una petición POST
+  else if (req.get('content-type') === 'application/json' && req.method === 'POST') {
     // Valida parámetros
     if (req.body.nombre && req.body.correo && req.body.asunto && req.body.mensaje) {
       // Obtiene información desde formulario
