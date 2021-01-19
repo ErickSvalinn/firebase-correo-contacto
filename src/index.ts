@@ -11,8 +11,14 @@ import * as nodemailer from 'nodemailer';
 
 // Función para enviar correo
 export const correoContacto = functions.https.onRequest((req, res) => {
+  // Instancia usuario y contraseña de correo desde configuración de firebase
+  const remitenteCorreo = functions.config().remitente.correo;
+  const remitenteContrasena = functions.config().remitente.contrasena;
+  const destinatarioCorreo = functions.config().destinatario.correo;
+  const sitioWeb = functions.config().sitioweb;
+
   // Setea CORS
-  res.set('Access-Control-Allow-Origin', 'http://127.0.0.1:5500');
+  res.set('Access-Control-Allow-Origin', sitioWeb);
   res.set('Access-Control-Allow-Credentials', 'true');
 
   console.log(req.get('content-type'));
@@ -20,11 +26,6 @@ export const correoContacto = functions.https.onRequest((req, res) => {
 
   // Valida que sea un JSON Body y una petición POST
   if (req.get('content-type') === 'application/json' && req.method === 'POST') {
-    // Instancia usuario y contraseña de correo desde configuración de firebase
-    const remitenteCorreo = functions.config().remitente.correo;
-    const remitenteContrasena = functions.config().remitente.contrasena;
-    const destinatarioCorreo = functions.config().destinatario.correo;
-
     // Valida parámetros
     if (req.body.nombre && req.body.correo && req.body.asunto && req.body.mensaje) {
       // Obtiene información desde formulario
