@@ -13,3 +13,6 @@ node_modules/
 
 # No sube las configuraciones
 .runtimeconfig.json
+
+# No sube ningun log
+*.log
