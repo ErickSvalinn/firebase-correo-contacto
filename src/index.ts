@@ -21,9 +21,6 @@ export const correoContacto = functions.https.onRequest((req, res) => {
   res.set('Access-Control-Allow-Origin', sitioWeb);
   res.set('Access-Control-Allow-Credentials', 'true');
 
-  console.log(req.get('content-type'));
-  console.log(req.method);
-
   // Valida que sea un JSON Body y una petición POST
   if (req.get('content-type') === 'application/json' && req.method === 'POST') {
     // Valida parámetros
@@ -59,8 +56,6 @@ export const correoContacto = functions.https.onRequest((req, res) => {
       return transporter.sendMail(mailOptions, (error, info) => {
         // Verifica si existe un error
         if (error) {
-          console.log(error);
-
           res.status(200).send({ codigo: 1, mensaje: 'Ha ocurrido un error al envíar el correo de contacto.' });
         } else {
           res.status(200).send({ codigo: 0, mensaje: 'El correo se ha enviado correctamente.' });
