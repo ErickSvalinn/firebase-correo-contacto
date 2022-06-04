@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as nodemailer from 'nodemailer';
+require('firebase-functions/lib/logger/compat');
 
 // Función para enviar correo
 export const correoContacto = functions.https.onRequest((req, res) => {
@@ -16,7 +17,7 @@ export const correoContacto = functions.https.onRequest((req, res) => {
   // Documentación: https://cloud.google.com/functions/docs/writing/http#handling_cors_requests
 
   // Configura CORS Base
-  res.set('Access-Control-Allow-Origin', sitioWeb);
+  res.set('Access-Control-Allow-Origin', [sitioWeb]);
   res.set('Access-Control-Allow-Credentials', 'true');
 
   // CORS de OPTION (Primera solicitud)
@@ -63,19 +64,35 @@ export const correoContacto = functions.https.onRequest((req, res) => {
       return transporter.sendMail(mailOptions, (error, info) => {
         // Verifica si existe un error
         if (error) {
+          // Envia la respuesta
           res.status(200).send({ codigo: 1, mensaje: 'Ha ocurrido un error al envíar el correo de contacto.' });
-        } else {
-          res.status(200).send({ codigo: 0, mensaje: 'El correo se ha enviado correctamente.' });
+
+          // Registra la informacion
+          console.error(error);
         }
+
+        // Envia respuesta correcta
+        res.status(200).send({ codigo: 0, mensaje: 'El correo se ha enviado correctamente.' });
+
+        // Registra la informacion
+        console.info(info);
       });
     }
     // No se enviaron todos los parámetros
     else {
+      // Envia la respuesta
       res.status(200).send({ codigo: 1, mensaje: 'Falta uno o más parámetros.' });
+
+      // Registra la informacion
+      console.warn('Falta uno o más parámetros.');
     }
   }
   // Petición erronea
   else {
+    // Envia la respuesta
     res.status(403).send({ codigo: 1, mensaje: 'Acceso denegado.' });
+
+    // Registra la informacion
+    console.warn('Acceso denegado.');
   }
 });
