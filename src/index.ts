@@ -1,14 +1,17 @@
 import * as functions from 'firebase-functions';
-import * as nodemailer from 'nodemailer';
+import * as sgMail from '@sendgrid/mail';
 require('firebase-functions/lib/logger/compat');
 
 // Función para enviar correo
 export const correoContacto = functions.https.onRequest((req, res) => {
-  // Instancia usuario y contraseña de correo desde configuración de firebase
-  const remitenteCorreo = functions.config().remitente.correo;
-  const remitenteContrasena = functions.config().remitente.contrasena;
-  const destinatarioCorreo = functions.config().destinatario.correo;
-  const sitioWeb = functions.config().web.url;
+  // Obtiene informacion de envio
+  const apiKey = functions.config().mail.apikey;
+  const sender = functions.config().mail.sender;
+  const recipient = functions.config().mail.recipient;
+  const cors = functions.config().web.url;
+
+  // Asigna la ApiKey a la libreria
+  sgMail.setApiKey(apiKey);
 
   // Control de CORS
   // Considerar que CORS consiste en dos solicitudes
@@ -17,7 +20,7 @@ export const correoContacto = functions.https.onRequest((req, res) => {
   // Documentación: https://cloud.google.com/functions/docs/writing/http#handling_cors_requests
 
   // Configura CORS Base
-  res.set('Access-Control-Allow-Origin', [sitioWeb]);
+  res.set('Access-Control-Allow-Origin', [cors]);
   res.set('Access-Control-Allow-Credentials', 'true');
 
   // CORS de OPTION (Primera solicitud)
@@ -34,49 +37,41 @@ export const correoContacto = functions.https.onRequest((req, res) => {
     // Valida parámetros
     if (req.body.nombre && req.body.correo && req.body.asunto && req.body.mensaje) {
       // Obtiene información desde formulario
-      const contactoNombre = req.body.nombre;
-      const contactoCorreo = req.body.correo;
-      const contactoAsunto = req.body.asunto;
-      const contactoMensaje = req.body.mensaje;
+      const contactName = req.body.nombre;
+      const contactMail = req.body.correo;
+      const contactSubject = req.body.asunto;
+      const contactMessage = req.body.mensaje;
 
-      // Configura credenciales de correo
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: remitenteCorreo,
-          pass: remitenteContrasena,
-        },
-      });
-
-      // Configura opciones de correo
-      const mailOptions = {
-        from: remitenteCorreo, // Quien envía el correo
-        to: destinatarioCorreo, // Destinatario, sería la cuenta
-        subject: contactoAsunto, // Asunto del correo
-        html: `<p>Nombre de contacto: ${contactoNombre}</p>
-             <br />
-             <p>Correo de contacto: ${contactoCorreo}</p>
-             <br />
-             <p>Mensaje: ${contactoMensaje}</p>`, // Contenido del mensaje
+      // Crea correo de mensaje
+      const mail = {
+        to: recipient,
+        from: sender,
+        subject: `Correo Contacto ${cors}`,
+        html: `<table>
+                <tr><td>Nombre</td><td>${contactMail}</td></tr>
+                <tr><td>Correo</td><td>${contactSubject}</td></tr>
+                <tr><td>Asunto</td><td>${contactName}</td></tr>
+                <tr><td>Mensaje</td><td>${contactMessage}</td></tr>
+              </table>`,
       };
 
-      // Intenta envío de correo
-      return transporter.sendMail(mailOptions, (error, info) => {
-        // Verifica si existe un error
-        if (error) {
-          // Envia la respuesta
+      // Envía correo
+      sgMail
+        .send(mail)
+        .then(() => {
+          // Envia respuesta
+          res.status(200).send({ codigo: 0, mensaje: 'El correo se ha enviado correctamente.' });
+
+          // Registra evento
+          console.info('Correo enviado correctamente.');
+        })
+        .catch(error => {
+          // Envia respuesta
           res.status(200).send({ codigo: 1, mensaje: 'Ha ocurrido un error al envíar el correo de contacto.' });
 
-          // Registra la informacion
+          // Registra evento
           console.error(error);
-        }
-
-        // Envia respuesta correcta
-        res.status(200).send({ codigo: 0, mensaje: 'El correo se ha enviado correctamente.' });
-
-        // Registra la informacion
-        console.info(info);
-      });
+        });
     }
     // No se enviaron todos los parámetros
     else {
